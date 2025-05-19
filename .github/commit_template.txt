@@ -1,0 +1,6 @@
+feat(scope): add new feature
+
+- Summary of what this commit adds or changes.
+- Link to issue or ticket number if applicable.
+
+BREAKING CHANGE: if applicable

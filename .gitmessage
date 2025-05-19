@@ -1,0 +1,47 @@
+# <type>(<scope>): <subject>
+# Example: feat(auth): add login functionality
+#
+# Types:
+#   feat     (new feature)
+#   fix      (bug fix)
+#   docs     (documentation changes)
+#   style    (formatting, missing semicolons, etc; no code change)
+#   refactor (refactoring production code)
+#   test     (adding missing tests, refactoring tests)
+#   chore    (updating build tasks, package manager configs, etc)
+#
+# Scope:
+#   auth     (authentication related changes)
+#   store    (state management changes)
+#   ui       (user interface components)
+#   api      (API integration changes)
+#   test     (test infrastructure changes)
+#   deps     (dependency updates)
+#   ci       (CI configuration changes)
+#   *        (multiple scopes or scope-less)
+#
+# Subject: (max 50 chars)
+#   - Use imperative mood ("Add" not "Added" or "Adds")
+#   - Don't capitalize first letter
+#   - No period (.) at the end
+#
+# Body: (optional, wrap at 72 chars)
+# Explain the motivation for the change and contrast it with previous behavior
+#
+# Footer: (optional)
+# Include references to issues and breaking changes
+# Example: Closes #123, BREAKING CHANGE: auth API endpoints changed
+#
+# Emojis: (optional)
+# 🎨 :art:             when improving code structure/format
+# ⚡ :zap:             when improving performance
+# 🔥 :fire:            when removing code/files
+# 🐛 :bug:             when fixing a bug
+# 🚀 :rocket:          when deploying stuff
+# ✨ :sparkles:        when adding new features
+# 📝 :memo:            when writing docs
+# ✅ :white_check_mark: when adding tests
+# 🔒 :lock:            when dealing with security
+# ⬆️ :arrow_up:        when upgrading dependencies
+# ⬇️ :arrow_down:      when downgrading dependencies
+# 🔄 :arrows_counterclockwise: when syncing branches/dependencies 

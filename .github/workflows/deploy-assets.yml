@@ -1,0 +1,161 @@
+name: Deploy Assets to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*.*.*'
+  release:
+    types:
+      - created
+  schedule:
+    - cron: '0 0 * * 0'  # Weekly on Sunday
+
+permissions:
+  contents: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch all history for changelog generation
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Get Version
+        id: get_version
+        run: |
+          VERSION=$(jq -r .version package.json)
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Install Dependencies
+        run: |
+          npm ci
+          npm install -g conventional-changelog-cli
+
+      - name: Generate Changelog
+        run: |
+          conventional-changelog -p angular -i CHANGELOG.md -s
+          git add CHANGELOG.md
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git commit -m "📝 Update CHANGELOG.md [skip ci]" || true
+
+      - name: Build
+        run: npm run build
+
+      - name: Create Launch Assets Package
+        run: |
+          chmod +x ./scripts/generate-launch-assets.sh
+          ./scripts/generate-launch-assets.sh
+
+      - name: Upload Assets as Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: launch-assets
+          path: launch-assets.zip
+
+      - name: Generate Release Notes
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          LAST_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+          if [ -z "$LAST_TAG" ]; then
+            COMMITS=$(git log --pretty=format:"- %s" --no-merges)
+          else
+            COMMITS=$(git log --pretty=format:"- %s" --no-merges $LAST_TAG..HEAD)
+          fi
+          envsubst < .github/release-template.md > RELEASE_NOTES.md
+          echo "## 📝 Changes" >> RELEASE_NOTES.md
+          echo "$COMMITS" >> RELEASE_NOTES.md
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist
+          enable_jekyll: false
+          allow_empty_commit: true
+          commit_message: '🚀 Deploy Assets to GitHub Pages'
+
+      - name: Create Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v1
+        with:
+          files: launch-assets.zip
+          body_path: RELEASE_NOTES.md
+          draft: false
+          prerelease: false
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create Product Hunt Draft
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          PH_TOKEN: ${{ secrets.PRODUCT_HUNT_TOKEN }}
+        run: |
+          if [ -n "$PH_TOKEN" ]; then
+            curl -X POST "https://api.producthunt.com/v2/api/graphql" \
+              -H "Authorization: Bearer $PH_TOKEN" \
+              -H "Content-Type: application/json" \
+              -d '{
+                "query": "mutation($input: CreatePostInput!) { createPost(input: $input) { post { id } } }",
+                "variables": {
+                  "input": {
+                    "name": "VisionBoard AI v${{ env.VERSION }}",
+                    "tagline": "Your AI-powered productivity OS",
+                    "description": "$(cat RELEASE_NOTES.md)",
+                    "url": "https://github.com/${{ github.repository }}"
+                  }
+                }
+              }'
+          fi
+
+      - name: Send Release Email
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          MAILGUN_API_KEY: ${{ secrets.MAILGUN_API_KEY }}
+          MAILGUN_DOMAIN: ${{ secrets.MAILGUN_DOMAIN }}
+        run: |
+          if [ -n "$MAILGUN_API_KEY" ]; then
+            curl -s --user "api:$MAILGUN_API_KEY" \
+              "https://api.mailgun.net/v3/$MAILGUN_DOMAIN/messages" \
+              -F from="VisionBoard AI <releases@visionboard.ai>" \
+              -F to="team@visionboard.ai" \
+              -F subject="🚀 New Release: VisionBoard AI v${{ env.VERSION }}" \
+              -F text="$(cat RELEASE_NOTES.md)"
+          fi
+
+      - name: Track Release Analytics
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          # Google Analytics
+          if [ -n "${{ secrets.GA_TRACKING_ID }}" ]; then
+            curl -X POST "https://www.google-analytics.com/collect" \
+              -d "v=1&t=event&tid=${{ secrets.GA_TRACKING_ID }}&cid=555&ec=Release&ea=Published&el=v${{ env.VERSION }}"
+          fi
+          
+          # Plausible Analytics
+          if [ -n "${{ secrets.PLAUSIBLE_DOMAIN }}" ]; then
+            curl -X POST "https://plausible.io/api/event" \
+              -H "Content-Type: application/json" \
+              -d "{\"domain\":\"${{ secrets.PLAUSIBLE_DOMAIN }}\",\"name\":\"Release\",\"url\":\"https://github.com/${{ github.repository }}/releases/tag/v${{ env.VERSION }}\"}"
+          fi
+
+      - name: Bump version
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          npm version patch -m "🔖 Bump version to %s [skip ci]"
+          git push --follow-tags 
