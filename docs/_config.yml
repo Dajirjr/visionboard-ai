@@ -1,0 +1,16 @@
+title: VisionBoard AI
+description: AI-powered weekly summaries and progress tracking
+theme: jekyll-theme-minimal
+baseurl: "/vue-ts-pinia-project"
+url: "https://dahirjr.github.io"
+repository: "dahirjr/vue-ts-pinia-project"
+show_downloads: true
+google_analytics:
+markdown: GFM
+plugins:
+  - jekyll-relative-links
+  - jekyll-seo-tag
+  - jekyll-sitemap
+relative_links:
+  enabled: true
+  collections: true 

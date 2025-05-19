@@ -1,0 +1,64 @@
+name: 🧠 Generate Weekly AI Project Summary
+
+on:
+  schedule:
+    - cron: '0 8 * * MON'  # Every Monday at 08:00 UTC
+  workflow_dispatch:
+
+jobs:
+  ai-weekly-summary:
+    runs-on: ubuntu-latest
+    steps:
+      - name: ⬇️ Checkout Repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch all history for accurate summaries
+
+      - name: 📦 Install Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: 📜 Get Recent Commits
+        id: get_commits
+        run: |
+          git log --since="7 days ago" --pretty=format:"%s" > commits.txt
+          echo "COMMIT_COUNT=$(wc -l < commits.txt)" >> $GITHUB_ENV
+
+      - name: 🤖 Generate Summary with OpenAI
+        id: generate_summary
+        if: env.COMMIT_COUNT != '0'
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          npx openai api chat.completions.create -m gpt-4 \
+          -t "Summarize the following commits into a human-friendly changelog with tags and emoji:" \
+          -i commits.txt \
+          -o docs/weekly-updates/summary-$(date +'%Y-%m-%d').md
+
+      - name: ✅ Commit & Push Summary
+        if: success() && env.COMMIT_COUNT != '0'
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git add docs/weekly-updates/
+          git commit -m "📘 Weekly summary update [skip ci]"
+          git push origin main
+
+      - name: 📧 Notify on Failure
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: '❌ Weekly Summary Generation Failed',
+              body: `The weekly summary generation workflow failed on ${new Date().toISOString()}.
+              Please check the [workflow run](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}) for details.`
+            })
+
+      - name: 📝 Skip Notice
+        if: env.COMMIT_COUNT == '0'
+        run: echo "No commits found in the last 7 days, skipping summary generation." 

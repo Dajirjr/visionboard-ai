@@ -12,6 +12,12 @@
           <Loader2Icon v-else class="w-4 h-4 animate-spin" />
           <span>{{ getButtonText }}</span>
         </button>
+        <SaveSummaryButton 
+          v-if="report"
+          :summary="formatReportToMarkdown"
+          @saved="handleSaved"
+          @error="handleError"
+        />
         <button 
           @click="showPreview = true"
           class="px-4 py-2 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
@@ -163,6 +169,9 @@ import { exportReport } from '@/lib/pdf/exportReport'
 import { RefreshCwIcon, DownloadIcon, Loader2Icon, ClipboardListIcon, AlertCircleIcon, FileIcon } from 'lucide-vue-next'
 import PDFReport from '@/components/export/PDFReport.vue'
 import PDFPreview from './export/PDFPreview.vue'
+import SaveSummaryButton from './SaveSummaryButton.vue'
+import { format } from 'date-fns'
+import { useToast } from '@/composables/useToast'
 
 interface Report {
   summary: string
@@ -188,6 +197,8 @@ const isGenerating = ref(false)
 const isExporting = ref(false)
 const error = ref<string | null>(null)
 const showPreview = ref(false)
+
+const toast = useToast()
 
 const getButtonText = computed(() => {
   if (loading.value) return 'Loading...'
@@ -226,6 +237,50 @@ const generateReport = async () => {
     loading.value = false
     isGenerating.value = false
   }
+}
+
+// Format report data to markdown
+const formatReportToMarkdown = computed(() => {
+  if (!report.value) return ''
+
+  const stats = report.value.stats
+  const weekStart = new Date(stats.weekStart)
+  const weekEnd = new Date(stats.weekEnd)
+
+  return `# 📘 Weekly Update – ${format(weekEnd, 'MMMM d, yyyy')}
+
+Here's what happened this week on **VisionBoard AI**:
+
+## 📊 Key Metrics
+- Tasks Completed: ${stats.completed}
+- Tasks In Progress: ${stats.inProgress}
+- Focus Time: ${formatFocusTime.value}
+- Completion Rate: ${completionRate.value}%
+
+## 🎯 Priority Distribution
+- High Priority: ${stats.byPriority.high} tasks
+- Medium Priority: ${stats.byPriority.medium} tasks
+- Low Priority: ${stats.byPriority.low} tasks
+
+## 📅 Daily Activity
+${Object.entries(stats.byDay)
+  .map(([day, count]) => `- ${day}: ${count} tasks`)
+  .join('\n')}
+
+## 🧠 AI Insights
+${report.value.summary}
+
+---
+Generated on ${new Date().toLocaleDateString()} using VisionBoard AI
+`
+})
+
+const handleSaved = () => {
+  toast.success('Weekly summary saved successfully! 📝')
+}
+
+const handleError = (error: string) => {
+  toast.error(`Failed to save summary: ${error}`)
 }
 </script>
 

@@ -1,9 +1,13 @@
 <script setup lang="ts">
 import DashboardView from './views/DashboardView.vue';
+import Toast from '@/components/Toast.vue'
 </script>
 
 <template>
-  <DashboardView />
+  <div class="app">
+    <DashboardView />
+    <Toast />
+  </div>
 </template>
 
 <style>

@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://dahirjr.github.io/vue-ts-pinia-project/sitemap.xml 

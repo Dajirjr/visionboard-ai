@@ -1,0 +1,166 @@
+<header class="site-header">
+  <div class="container">
+    <nav class="nav">
+      <a href="/" class="logo">
+        <img src="/launch-assets/logos/logo-light.svg" alt="Logo" class="logo-light">
+        <img src="/launch-assets/logos/logo-dark.svg" alt="Logo" class="logo-dark">
+      </a>
+      
+      <div class="nav-links">
+        <a href="/docs/" class="nav-link">Documentation</a>
+        <a href="/docs/weekly-updates/" class="nav-link">Weekly Updates</a>
+        <a href="https://github.com/dahirjr/vue-ts-pinia-project" class="nav-link">GitHub</a>
+      </div>
+
+      <div class="nav-actions">
+        <button id="theme-toggle" class="theme-toggle" aria-label="Toggle theme">
+          <span class="icon-light">🌙</span>
+          <span class="icon-dark">🌞</span>
+        </button>
+      </div>
+    </nav>
+  </div>
+</header>
+
+<style>
+.site-header {
+  background-color: var(--color-background);
+  border-bottom: 1px solid var(--color-border);
+  padding: 1rem 0;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+.nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+}
+
+.logo img {
+  height: 2rem;
+}
+
+.logo-dark {
+  display: none;
+}
+
+.dark .logo-light {
+  display: none;
+}
+
+.dark .logo-dark {
+  display: block;
+}
+
+.nav-links {
+  display: flex;
+  gap: 1.5rem;
+}
+
+.nav-link {
+  color: var(--color-text);
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.3s;
+}
+
+.nav-link:hover {
+  color: var(--color-primary);
+}
+
+.nav-actions {
+  display: flex;
+  align-items: center;
+}
+
+.theme-toggle {
+  background: none;
+  border: none;
+  padding: 0.5rem;
+  cursor: pointer;
+  border-radius: 50%;
+  transition: background-color 0.3s;
+}
+
+.theme-toggle:hover {
+  background-color: var(--color-background-soft);
+}
+
+.icon-light,
+.icon-dark {
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+.icon-dark {
+  display: none;
+}
+
+.dark .icon-light {
+  display: none;
+}
+
+.dark .icon-dark {
+  display: block;
+}
+
+:root {
+  --color-background: #ffffff;
+  --color-background-soft: #f3f4f6;
+  --color-text: #1a1a1a;
+  --color-border: #e5e7eb;
+  --color-primary: #3b82f6;
+}
+
+:root.dark {
+  --color-background: #1a1a1a;
+  --color-background-soft: #242424;
+  --color-text: #ffffff;
+  --color-border: #374151;
+  --color-primary: #60a5fa;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const themeToggle = document.getElementById('theme-toggle')
+  const THEME_KEY = 'theme-preference'
+
+  const setTheme = (dark) => {
+    document.documentElement.classList.toggle('dark', dark)
+    localStorage.setItem(THEME_KEY, dark ? 'dark' : 'light')
+  }
+
+  // Initialize theme
+  const savedTheme = localStorage.getItem(THEME_KEY)
+  if (savedTheme) {
+    setTheme(savedTheme === 'dark')
+  } else {
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+    setTheme(prefersDark)
+  }
+
+  // Toggle theme
+  themeToggle.addEventListener('click', () => {
+    const isDark = document.documentElement.classList.contains('dark')
+    setTheme(!isDark)
+  })
+
+  // Watch for system theme changes
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+    if (!localStorage.getItem(THEME_KEY)) {
+      setTheme(e.matches)
+    }
+  })
+})
+</script> 
